@@ -169,24 +169,32 @@ class MyApp(App):
             # download image using requests
             failed_filenames = list()
             for idx, image_url in enumerate(image_urls):
+                # jump none value of image url
+                if image_url is None:
+                    continue
+
                 filename_suffix = '_' + str(idx)
                 if idx == 0:
                     filename_suffix = ''
-                filename = image_filename + filename_suffix + '.' + image_url.split('.')[-1]  # ext name of file
-                filepath = os.path.join(download_dir, filename)
-                r = requests.get(image_url, stream=True)
-                if r.status_code == 200:
-                    r.raw.decode_content = True
-                    with open(filepath, 'wb') as f:
-                        shutil.copyfileobj(r.raw, f)
-                    print('download succefully: %s -> %s' % (image_url, filename))
-                else:
-                    print('download failed: %s' % image_url)
+                try:
+                    filename = image_filename + filename_suffix + '.' + image_url.split('.')[-1]  # ext name of file
+                    filepath = os.path.join(download_dir, filename)
+                    r = requests.get(image_url, stream=True)
+                    if r.status_code == 200:
+                        r.raw.decode_content = True
+                        with open(filepath, 'wb') as f:
+                            shutil.copyfileobj(r.raw, f)
+                        print('download succefully: %s -> %s' % (image_url, filename))
+                    else:
+                        print('download failed: %s' % image_url)
+                        failed_filenames.append(image_url)
+                except:
                     failed_filenames.append(image_url)
 
         # write failed filenames
         if len(failed_filenames) > 0:
             with open(output_filename, 'w') as f:
+                pprint(failed_filenames)
                 f.write('\n'.join(failed_filenames))
 
 
