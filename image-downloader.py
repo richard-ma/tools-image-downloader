@@ -128,7 +128,7 @@ class MyApp(App):
         # set input
         input_filename = self.input(
             "请将csv文件拖动到此窗口，然后按回车键。",
-            default=os.path.join(self.settings['test_dir'], "amproducts_173916_20220414093004_22468_N84NIXW.csv"))
+            default=os.path.join(self.settings['test_dir'], "amproducts_173916_20220418152021_11096_KSGINSX.csv"))
 
         # set working directory
         self.setWorkingDirFromFilename(input_filename)
@@ -142,44 +142,49 @@ class MyApp(App):
         # pprint(data)
 
         # process line
+        all_data = dict()
         for line in data:
             # pprint(line)
 
             folder_name = image_filename = line['folder']
-            # create download dir
-            download_dir = os.path.join(self.getWorkingDir(), folder_name)
-            if not os.path.exists(download_dir):
-                os.makedirs(download_dir)
+            if folder_name not in all_data.keys():
+                all_data[folder_name] = list()
 
-            image_urls = list()
             # append main image url
-            image_urls.append(line['main_image_url'])
+            all_data[folder_name].append(line['main_image_url'])
 
             # append other image url
             i = 1
             while True:
                 key = 'other_image_url' + str(i)
                 if key in line.keys():
-                    image_urls.append(line[key])
+                    all_data[folder_name].append(line[key])
                 else:
                     break
                 i += 1
-            # pprint(image_urls)
+        # pprint(all_data)
+
+        failed_filenames = list()
+        for folder_name, image_urls in all_data.items():
+            # create download dir
+            download_dir = os.path.join(self.getWorkingDir(), folder_name)
+            if not os.path.exists(download_dir):
+                os.makedirs(download_dir)
 
             # download image using requests
-            failed_filenames = list()
             for idx, image_url in enumerate(image_urls):
                 # jump none value of image url
-                if image_url is None:
+                if image_url is None or image_url == '':
                     continue
 
                 filename_suffix = '_' + str(idx)
                 if idx == 0:
                     filename_suffix = ''
+
                 try:
                     filename = image_filename + filename_suffix + '.' + image_url.split('.')[-1]  # ext name of file
                     filepath = os.path.join(download_dir, filename)
-                    r = requests.get(image_url, stream=True)
+                    r = requests.get(image_url, stream=True, timeout=2)
                     if r.status_code == 200:
                         r.raw.decode_content = True
                         with open(filepath, 'wb') as f:
@@ -188,7 +193,7 @@ class MyApp(App):
                     else:
                         print('download failed: %s' % image_url)
                         failed_filenames.append(image_url)
-                except:
+                except Exception as e:
                     failed_filenames.append(image_url)
 
         # write failed filenames
